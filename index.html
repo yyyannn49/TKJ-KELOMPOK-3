@@ -1,0 +1,570 @@
+Berikut adalah file index.html lengkap yang sudah diperbarui. Hanya bagian grid anggota kelompok yang diubah dari .g5 menjadi .g6 (serta penambahan CSS pendukung untuk 6 kolom) agar ke-6 anggota sejajar dalam satu baris tanpa merusak tampilan slide lainnya:
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bab 3 — Perancangan Jaringan Nirkabel (Site Survey &amp; Pointing) | Kelompok 3</title>
+<meta name="description" content="Presentasi Bab 3: Menganalisis perancangan jaringan nirkabel — site survey dan pointing antena. Kelompok 3 kelas XII TKJ." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --stage-w: 1280px;
+    --stage-h: 720px;
+    --ink: #f5f7fb;
+    --ink-dim: rgba(245,247,251,.72);
+    --ink-faint: rgba(245,247,251,.5);
+    --glass: rgba(255,255,255,.09);
+    --glass-2: rgba(255,255,255,.055);
+    --stroke: rgba(255,255,255,.18);
+    --stroke-soft: rgba(255,255,255,.10);
+    --blue: #5aa9ff;
+    --violet: #b18cff;
+    --mint: #5fe3c0;
+    --peach: #ff9e7d;
+    --ease: cubic-bezier(.32,.72,0,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter",system-ui,sans-serif;
+    background:#05070f;color:var(--ink);overflow:hidden;
+  }
+
+  /* ---------- ambient background ---------- */
+  .bg{position:fixed;inset:0;z-index:0;overflow:hidden;background:
+      radial-gradient(120% 100% at 10% 0%, #142046 0%, #080b18 55%, #05070f 100%);}
+  .orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;will-change:transform}
+  .orb.a{width:640px;height:640px;background:#3b6dff;top:-180px;left:-140px;animation:float1 22s var(--ease) infinite alternate}
+  .orb.b{width:560px;height:560px;background:#a15bff;bottom:-200px;right:-120px;animation:float2 26s var(--ease) infinite alternate}
+  .orb.c{width:420px;height:420px;background:#12c2a0;top:38%;left:52%;opacity:.35;animation:float3 30s var(--ease) infinite alternate}
+  @keyframes float1{to{transform:translate3d(160px,120px,0) scale(1.15)}}
+  @keyframes float2{to{transform:translate3d(-180px,-110px,0) scale(1.1)}}
+  @keyframes float3{to{transform:translate3d(-140px,90px,0) scale(1.2)}}
+  .grain{position:absolute;inset:0;opacity:.05;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");}
+
+  /* ---------- stage / 16:9 scaling ---------- */
+  #viewport{position:fixed;inset:0;z-index:1;display:grid;place-items:center}
+  #stage{
+    position:absolute;width:var(--stage-w);height:var(--stage-h);
+    left:50%;top:50%;margin-left:calc(var(--stage-w) / -2);margin-top:calc(var(--stage-h) / -2);
+    transform-origin:center center;
+  }
+  .slide{
+    position:absolute;inset:0;padding:64px 76px;display:flex;flex-direction:column;justify-content:center;
+    opacity:0;visibility:hidden;pointer-events:none;
+    transform:translate3d(60px,0,0) scale(.985);
+    transition:opacity .55s var(--ease), transform .7s var(--ease), visibility 0s linear .7s;
+  }
+  .slide.active{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition-delay:0s}
+  .slide.prev{transform:translate3d(-60px,0,0) scale(.985)}
+
+  /* staggered children */
+  .slide .r{opacity:0;transform:translate3d(0,26px,0);filter:blur(6px)}
+  .slide.active .r{opacity:1;transform:none;filter:blur(0);transition:opacity .7s var(--ease),transform .8s var(--ease),filter .8s var(--ease)}
+  .slide.active .r:nth-child(1){transition-delay:.06s}
+  .slide.active .r:nth-child(2){transition-delay:.13s}
+  .slide.active .r:nth-child(3){transition-delay:.20s}
+  .slide.active .r:nth-child(4){transition-delay:.27s}
+  .slide.active .r:nth-child(5){transition-delay:.34s}
+  .slide.active .r:nth-child(6){transition-delay:.41s}
+
+  /* ---------- glass primitives ---------- */
+  .glass{
+    background:linear-gradient(150deg, rgba(255,255,255,.13), rgba(255,255,255,.05));
+    border:1px solid var(--stroke);
+    -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
+    border-radius:28px;
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.22);
+  }
+  .card{padding:24px 26px;transition:transform .5s var(--ease), box-shadow .5s var(--ease), background .5s var(--ease)}
+  .card:hover{transform:translateY(-6px);box-shadow:0 34px 70px -22px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.3)}
+
+  .kicker{
+    display:inline-flex;align-items:center;gap:10px;align-self:flex-start;
+    font-size:15px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);
+    padding:9px 18px;border-radius:999px;background:var(--glass);border:1px solid var(--stroke-soft);
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);white-space:nowrap;
+  }
+  .kicker .dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 12px var(--mint)}
+
+  h1{font-size:74px;line-height:1.02;letter-spacing:-.035em;font-weight:700}
+  h2{font-size:52px;line-height:1.06;letter-spacing:-.03em;font-weight:700;margin-bottom:6px}
+  h3{font-size:26px;line-height:1.2;letter-spacing:-.02em;font-weight:650}
+  .lead{font-size:26px;line-height:1.45;color:var(--ink-dim);font-weight:400;max-width:960px}
+  .body{font-size:21px;line-height:1.5;color:var(--ink-dim)}
+  .small{font-size:18px;line-height:1.45;color:var(--ink-faint)}
+  .grad{background:linear-gradient(100deg,#8fc2ff,#c9a8ff 45%,#7ff0d3);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .head{display:flex;flex-direction:column;gap:12px;margin-bottom:30px}
+  .grid{display:grid;gap:18px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+
+  .num{
+    width:44px;height:44px;flex:0 0 44px;border-radius:14px;display:grid;place-items:center;
+    font-size:19px;font-weight:700;color:#05070f;
+    background:linear-gradient(150deg,#bfe0ff,#e6d4ff);
+    box-shadow:0 8px 22px -8px rgba(160,190,255,.8);
+  }
+  .row{display:flex;gap:16px;align-items:flex-start}
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:11px}
+  ul.clean li{display:flex;gap:12px;align-items:flex-start;font-size:20px;line-height:1.42;color:var(--ink-dim)}
+  ul.clean li::before{content:"";width:7px;height:7px;margin-top:9px;flex:0 0 7px;border-radius:50%;
+    background:linear-gradient(140deg,var(--blue),var(--violet));box-shadow:0 0 10px rgba(120,160,255,.7)}
+  .tag{display:inline-block;padding:7px 14px;border-radius:999px;font-size:16px;font-weight:550;color:var(--ink-dim);
+    background:var(--glass-2);border:1px solid var(--stroke-soft)}
+  .formula{font-family:"SF Mono",ui-monospace,"JetBrains Mono",monospace;font-size:24px;letter-spacing:-.01em;color:#d9e7ff}
+
+  /* ---------- title slide ---------- */
+  .title-wrap{align-items:flex-start;gap:26px;display:flex;flex-direction:column}
+  .ring{position:absolute;right:70px;top:50%;transform:translateY(-50%);width:360px;height:360px;pointer-events:none}
+  .ring i{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,255,255,.16);animation:spin 26s linear infinite}
+  .ring i:nth-child(2){inset:38px;border-color:rgba(180,200,255,.25);animation-duration:18s;animation-direction:reverse}
+  .ring i:nth-child(3){inset:76px;border-color:rgba(150,255,225,.25);animation-duration:12s}
+  .ring i::after{content:"";position:absolute;top:-4px;left:50%;width:8px;height:8px;border-radius:50%;background:#cfe2ff;box-shadow:0 0 16px #9dc4ff}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- members ---------- */
+  .member{display:flex;flex-direction:column;gap:14px;align-items:center;padding:26px 14px;text-align:center}
+  .avatar{width:78px;height:78px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:700;color:#0a0f1d;
+    background:linear-gradient(150deg,#cfe4ff,#e9d7ff);box-shadow:0 12px 30px -12px rgba(180,200,255,.9), inset 0 2px 0 rgba(255,255,255,.7)}
+  .member .nm{font-size:22px;font-weight:650;letter-spacing:-.01em}
+  .member .ab{font-size:16px;color:var(--ink-faint)}
+
+  /* ---------- CTA button ---------- */
+  .cta{
+    display:inline-flex;align-items:center;gap:14px;align-self:flex-start;
+    padding:20px 34px;border-radius:999px;font-size:23px;font-weight:650;letter-spacing:-.01em;
+    color:#06101f;text-decoration:none;
+    background:linear-gradient(140deg,#ffffff,#d8e7ff);
+    border:1px solid rgba(255,255,255,.6);
+    box-shadow:0 22px 50px -18px rgba(150,190,255,.85), inset 0 1px 0 #fff;
+    transition:transform .45s var(--ease), box-shadow .45s var(--ease);
+  }
+  .cta:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 30px 66px -18px rgba(150,190,255,1), inset 0 1px 0 #fff}
+  .cta:active{transform:translateY(0) scale(.98)}
+  .cta svg{width:22px;height:22px}
+
+  /* ---------- chrome ---------- */
+  .chrome{position:fixed;z-index:5;color:var(--ink-faint);font-size:14px}
+  #dots{left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;
+    padding:10px 16px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--stroke-soft);
+    -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+  #dots b{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.28);cursor:pointer;transition:all .4s var(--ease)}
+  #dots b.on{width:26px;border-radius:999px;background:linear-gradient(90deg,#a8ccff,#e3ccff)}
+  .navbtn{position:fixed;z-index:5;top:50%;transform:translateY(-50%);width:50px;height:50px;border-radius:50%;
+    display:grid;place-items:center;cursor:pointer;color:var(--ink);
+    background:rgba(255,255,255,.08);border:1px solid var(--stroke-soft);
+    -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+    transition:all .4s var(--ease);opacity:.35}
+  .navbtn:hover{opacity:1;transform:translateY(-50%) scale(1.08);background:rgba(255,255,255,.16)}
+  #prev{left:20px}#next{right:20px}
+  .navbtn svg{width:20px;height:20px}
+  #counter{right:24px;bottom:26px;font-variant-numeric:tabular-nums;letter-spacing:.06em}
+  #fs{left:24px;bottom:22px;cursor:pointer;padding:9px 16px;border-radius:999px;
+    background:rgba(255,255,255,.07);border:1px solid var(--stroke-soft);
+    -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);transition:all .4s var(--ease)}
+  #fs:hover{background:rgba(255,255,255,.16);color:var(--ink)}
+  #bar{position:fixed;top:0;left:0;height:2px;z-index:6;width:0;
+    background:linear-gradient(90deg,#7fb4ff,#c9a6ff,#79efd0);transition:width .6s var(--ease)}
+  @media print{.chrome,.navbtn,#bar{display:none}}
+</style>
+</head>
+<body>
+
+<div class="bg"><span class="orb a"></span><span class="orb b"></span><span class="orb c"></span><span class="grain"></span></div>
+<div id="bar"></div>
+
+<div id="viewport">
+  <div id="stage">
+
+    <!-- 1 -->
+    <section class="slide title-wrap">
+      <span class="kicker r"><span class="dot"></span>Jaringan Nirkabel · Kelas XII TKJ</span>
+      <h1 class="r">Bab 3 —<br /><span class="grad">Menganalisis Perancangan<br />Jaringan Nirkabel</span></h1>
+      <p class="lead r" style="max-width:640px">Site Survey &amp; Pointing Antena — dua tahap persiapan agar jaringan nirkabel bekerja optimal.</p>
+      <div class="r"><span class="tag">Kelompok 3</span> <span class="tag">Kompetensi F</span> <span class="tag">Site Survey · Pointing</span></div>
+      <div class="ring"><i></i><i></i><i></i></div>
+    </section>
+
+    <!-- 2 Kelompok -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Anggota</span>
+        <h2>Kelompok <span class="grad">3</span></h2>
+      </div>
+      <div class="grid g6 r">
+        <div class="glass card member"><div class="avatar">Z</div><div><div class="nm">Zanuar</div><div class="ab">Absen 8</div></div></div>
+        <div class="glass card member"><div class="avatar">R</div><div><div class="nm">Royyan</div><div class="ab">Absen 17</div></div></div>
+        <div class="glass card member"><div class="avatar">R</div><div><div class="nm">Raisya</div><div class="ab">Absen 27</div></div></div>
+        <div class="glass card member"><div class="avatar">S</div><div><div class="nm">Salma</div><div class="ab">Absen 29</div></div></div>
+        <div class="glass card member"><div class="avatar">I</div><div><div class="nm">Icha</div><div class="ab">Absen 4</div></div></div>
+        <div class="glass card member"><div class="avatar">N</div><div><div class="nm">Najla</div><div class="ab">Absen 7</div></div></div>
+      </div>
+    </section>
+
+    <!-- 3 Tujuan -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Tujuan Pembelajaran</span>
+        <h2>Apa yang akan <span class="grad">dicapai</span></h2>
+      </div>
+      <div class="grid g2 r">
+        <div class="glass card row"><div class="num">1</div><div><h3>Tahapan Site Survey</h3><p class="body">Mengidentifikasi tahap demi tahap dari proses site survey.</p></div></div>
+        <div class="glass card row"><div class="num">2</div><div><h3>Kebutuhan Peralatan</h3><p class="body">Mengidentifikasi peralatan yang diperlukan pada proses site survey.</p></div></div>
+        <div class="glass card row"><div class="num">3</div><div><h3>Perhitungan Teknis</h3><p class="body">Menganalisis aspek perhitungan teknis yang berkaitan dengan site survey.</p></div></div>
+        <div class="glass card row"><div class="num">4</div><div><h3>Pointing Antena</h3><p class="body">Mengidentifikasi tahap – tahap pointing antena.</p></div></div>
+      </div>
+    </section>
+
+    <!-- 4 Pengantar -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Pengantar</span>
+        <h2>Dua tahap sebelum <span class="grad">instalasi</span></h2>
+      </div>
+      <p class="lead r" style="margin-bottom:26px">Sebelum menginstalasi dan mengkonfigurasi jaringan nirkabel, ada tahapan persiapan agar jaringan yang dibangun bekerja optimal sebagai media koneksi bagi semua client maupun server di dalamnya.</p>
+      <div class="grid g2 r">
+        <div class="glass card"><h3 style="margin-bottom:8px">01 · Site Survey</h3><p class="body">Menganalisa dan mengambil data lapangan untuk keperluan instalasi serta mengetahui cakupan radio frekuensi yang dibutuhkan.</p></div>
+        <div class="glass card"><h3 style="margin-bottom:8px">02 · Pointing Antena</h3><p class="body">Menentukan letak dan arah yang tepat dari antena perangkat pemancar maupun penerima jaringan nirkabel.</p></div>
+      </div>
+    </section>
+
+    <!-- 5 Pengertian site survey -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Site Survey</span>
+        <h2>Pengertian <span class="grad">Site Survey</span></h2>
+      </div>
+      <div class="glass card r" style="padding:34px 38px;margin-bottom:20px">
+        <p class="lead" style="color:var(--ink)">“Site survey adalah teknik yang digunakan untuk <b>menganalisa dan mengambil data</b> untuk keperluan instalasi, serta untuk mengetahui <b>cakupan radio frekuensi</b> yang dibutuhkan.”</p>
+      </div>
+      <div class="grid g2 r">
+        <div class="glass card"><h3 style="margin-bottom:6px">Persiapan 1</h3><p class="body">Pengumpulan informasi</p></div>
+        <div class="glass card"><h3 style="margin-bottom:6px">Persiapan 2</h3><p class="body">Pembuatan keputusan</p></div>
+      </div>
+    </section>
+
+    <!-- 6 Pertanyaan manajemen -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Sebelum Survey</span>
+        <h2>7 hal yang <span class="grad">diperhitungkan</span></h2>
+      </div>
+      <div class="grid g4 r" style="gap:16px">
+        <div class="glass card"><div class="num" style="margin-bottom:12px">1</div><h3>Analisa Fasilitas</h3><p class="small">Jenis fasilitas &amp; kebutuhan bandwidth di lokasi.</p></div>
+        <div class="glass card"><div class="num" style="margin-bottom:12px">2</div><h3>Spesifikasi Jaringan</h3><p class="small">OS jaringan, jumlah pengguna, protokol, kanal, keamanan, titik koneksi ke wired LAN.</p></div>
+        <div class="glass card"><div class="num" style="margin-bottom:12px">3</div><h3>Area &amp; Tower</h3><p class="small">Indoor / outdoor, jenis tower, perijinan, struktur engineer.</p></div>
+        <div class="glass card"><div class="num" style="margin-bottom:12px">4</div><h3>Tujuan Bisnis</h3><p class="small">Untuk apa jaringan digunakan agar survey efisien.</p></div>
+      </div>
+      <div class="grid g3 r" style="gap:16px;margin-top:16px">
+        <div class="glass card"><div class="num" style="margin-bottom:12px">5</div><h3>Bandwidth &amp; Roaming</h3><p class="small">Jumlah pengguna, throughput, jenis aplikasi (data / suara / video).</p></div>
+        <div class="glass card"><div class="num" style="margin-bottom:12px">6</div><h3>Sumber Dana</h3><p class="small">Budget project, waktu pengalokasian, kesiapan administrator.</p></div>
+        <div class="glass card"><div class="num" style="margin-bottom:12px">7</div><h3>Keamanan Data</h3><p class="small">Level keamanan jaringan yang dibutuhkan pelanggan.</p></div>
+      </div>
+    </section>
+
+    <!-- 7 Peralatan site survey -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Perlengkapan</span>
+        <h2>Peralatan &amp; tool <span class="grad">site survey</span></h2>
+      </div>
+      <div class="grid g5 r">
+        <div class="glass card"><h3>Wireless Access Point</h3></div>
+        <div class="glass card"><h3>Wireless Client Card</h3></div>
+        <div class="glass card"><h3>Laptop / PDA</h3></div>
+        <div class="glass card"><h3>Beberapa Jenis Antena</h3></div>
+        <div class="glass card"><h3>Software Utility Site Survey</h3></div>
+      </div>
+      <div class="glass card r" style="margin-top:22px">
+        <p class="body">Gunakan AP dengan <b>tipe dan model yang sama</b> dengan AP yang akan dipasang agar hasil survey akurat.</p>
+      </div>
+    </section>
+
+    <!-- 8 Data hasil -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Output</span>
+        <h2>Data hasil <span class="grad">analisa site survey</span></h2>
+      </div>
+      <div class="grid g3 r">
+        <div class="glass card"><div class="num" style="margin-bottom:14px">1</div><h3 style="margin-bottom:8px">Kondisi Sekitar</h3><p class="body">Halangan di sekitar lokasi dan titik untuk mendirikan tower / pipa galvanis.</p></div>
+        <div class="glass card"><div class="num" style="margin-bottom:14px">2</div><h3 style="margin-bottom:8px">Ketinggian &amp; Jarak</h3><p class="body">Ketinggian lokasi dari permukaan tanah, jarak dan sudut ke BTS diukur dengan GPS — sehingga diperoleh tinggi tower yang diperlukan.</p></div>
+        <div class="glass card"><div class="num" style="margin-bottom:14px">3</div><h3 style="margin-bottom:8px">Perangkat</h3><p class="body">Jenis radio wireless, antena, dan kanal yang digunakan.</p></div>
+      </div>
+    </section>
+
+    <!-- 9 LoS & Fresnel -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Aspek Teknis</span>
+        <h2>Line of Sight &amp; <span class="grad">Fresnel Zone</span></h2>
+      </div>
+      <div class="grid g2 r" style="align-items:start">
+        <div class="glass card">
+          <h3 style="margin-bottom:10px">Line of Sight (LoS)</h3>
+          <p class="body">Sistem perambatan radio gelombang mikro dari antena pengirim ke antena penerima dengan <b>jalur transmisi bebas hambatan</b>. Ini adalah analisa terpenting dalam site survey.</p>
+        </div>
+        <div class="glass card">
+          <h3 style="margin-bottom:10px">Fresnel Zone</h3>
+          <p class="body">Daerah berbentuk <b>elips</b> pada lintasan transmisi gelombang mikro yang menunjukkan interferensi gelombang RF jika terdapat blocking.</p>
+        </div>
+      </div>
+      <div class="glass card r" style="margin-top:18px;display:flex;gap:34px;align-items:center;flex-wrap:wrap">
+        <div><p class="small" style="margin-bottom:6px">Rumus</p><p class="formula">r = 17.32 × √(d / 4f)</p><p class="small" style="margin-top:6px">r: meter · d: km · f: GHz &nbsp;|&nbsp; versi feet/miles: r = 72.6 × √(d/4f)</p></div>
+        <div style="flex:1;min-width:300px"><p class="small" style="margin-bottom:6px">Contoh: f = 15 GHz, d = 2 km</p><p class="formula">r = 17.32 × √(2/60) = 3.1632 m</p><p class="small" style="margin-top:6px">Transmisi baik jika 60% × 3.1632 + 3 m ≈ <b>4.898 m</b> bebas halangan.</p></div>
+      </div>
+    </section>
+
+    <!-- 10 Gangguan -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Propagasi</span>
+        <h2>Gangguan sinyal di <span class="grad">Fresnel Zone</span></h2>
+      </div>
+      <p class="lead r" style="margin-bottom:22px">Jika terdapat halangan di wilayah Fresnel Zone, performa jaringan nirkabel akan terganggu. Efek yang terjadi:</p>
+      <div class="grid g3 r">
+        <div class="glass card"><h3 style="margin-bottom:8px">Reflection (Refleksi)</h3><p class="body">Gelombang merambat menjauhi bidang datar yang ditabrak. Multipath fading terjadi bila gelombang langsung menyatu dengan gelombang pantulan berbeda fasa.</p></div>
+        <div class="glass card"><h3 style="margin-bottom:8px">Refraction (Scattering)</h3><p class="body">Gelombang memudar melalui bidang tertentu. Di bawah 10 GHz pengaruh hujan/kabut kecil — redaman 2.4 GHz pada hujan 150 mm/jam ± 0.01 dB/km.</p></div>
+        <div class="glass card"><h3 style="margin-bottom:8px">Diffraction (Difraksi)</h3><p class="body">Gelombang melewati halangan (obstacle) lalu membelok masuk ke daerah bayangan.</p></div>
+      </div>
+    </section>
+
+    <!-- 11 Prosedur site survey -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Prosedur</span>
+        <h2>6 tahapan <span class="grad">site survey</span></h2>
+      </div>
+      <div class="grid g2 r" style="gap:14px">
+        <div class="glass card row" style="padding:18px 22px"><div class="num">1</div><p class="body">Buat denah lokasi untuk mengidentifikasi halangan bagi gelombang radio.</p></div>
+        <div class="glass card row" style="padding:18px 22px"><div class="num">2</div><p class="body">Telusuri lokasi secara detail: cari halangan propagasi dan benda bersifat logam.</p></div>
+        <div class="glass card row" style="padding:18px 22px"><div class="num">3</div><p class="body">Identifikasi area yang banyak digunakan pengguna dan yang tidak.</p></div>
+        <div class="glass card row" style="padding:18px 22px"><div class="num">4</div><p class="body">Tentukan lokasi awal AP: daya listrik, akses LAN, area jangkauan, pemilihan kanal, mounting antena.</p></div>
+        <div class="glass card row" style="padding:18px 22px"><div class="num">5</div><p class="body">Lakukan survey aktual untuk memverifikasi lokasi AP — lokasi boleh dipindah lalu dites lagi.</p></div>
+        <div class="glass card row" style="padding:18px 22px"><div class="num">6</div><p class="body">Catat lokasi dan rekam pembacaan sinyal radio pada area terluar jangkauan AP.</p></div>
+      </div>
+    </section>
+
+    <!-- 12 Pengertian pointing -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Pointing</span>
+        <h2>Pengertian <span class="grad">Pointing</span></h2>
+      </div>
+      <div class="glass card r" style="padding:34px 38px;margin-bottom:20px">
+        <p class="lead" style="color:var(--ink)">“Pointing adalah langkah untuk menentukan lokasi yang ideal antara <b>access point utama (server)</b> dengan <b>access point ke-2 (client)</b>, dibantu alat <b>GPS</b>.”</p>
+      </div>
+      <div class="grid g2 r">
+        <div class="glass card"><h3 style="margin-bottom:8px">Prinsipnya</h3><p class="body">Menentukan letak dan arah yang tepat dari antena perangkat pemancar maupun penerima jaringan nirkabel.</p></div>
+        <div class="glass card"><h3 style="margin-bottom:8px">Setelah terhubung</h3><p class="body">Koneksi internet berjalan lancar setelah dilakukan konfigurasi terlebih dahulu di komputer client.</p></div>
+      </div>
+    </section>
+
+    <!-- 13 Elevasi & Azimuth -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Perhitungan Antena</span>
+        <h2>Elevasi &amp; <span class="grad">Azimuth</span></h2>
+      </div>
+      <div class="grid g2 r" style="align-items:start">
+        <div class="glass card"><h3 style="margin-bottom:10px">Elevasi</h3><p class="body">Sudut yang terbentuk dari garis horizontal ke bumi ke atas langit.</p></div>
+        <div class="glass card"><h3 style="margin-bottom:10px">Azimuth</h3><p class="body">Besar sudut antara utara magnetis (0°) dengan titik sasaran. Disebut juga sudut kompas / perhitungan searah jarum jam.</p></div>
+      </div>
+      <div class="grid g3 r" style="margin-top:18px">
+        <div class="glass card"><h3 style="margin-bottom:6px">True Azimuth</h3><p class="small">Sudut antara utara sebenarnya dengan titik sasaran.</p></div>
+        <div class="glass card"><h3 style="margin-bottom:6px">Magnetic Azimuth</h3><p class="small">Sudut antara utara kompas dengan titik sasaran.</p></div>
+        <div class="glass card"><h3 style="margin-bottom:6px">Grid Azimuth</h3><p class="small">Sudut antara peta utara dengan titik sasaran.</p></div>
+      </div>
+    </section>
+
+    <!-- 14 Peralatan pointing -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Perlengkapan Lapangan</span>
+        <h2>Peralatan <span class="grad">pointing</span></h2>
+      </div>
+      <div class="grid g2 r" style="gap:20px">
+        <div class="glass card">
+          <ul class="clean">
+            <li>GPS, kompas, binocular</li>
+            <li>Pigtail &amp; Wireless AP 802.11a</li>
+            <li>Antena grid</li>
+            <li>Notebook, radio komunikasi (HT), pipa besi, klem pipa</li>
+            <li>Cable tester, crimping tool, konektor RJ45, kabel power roll, kabel UTP</li>
+          </ul>
+        </div>
+        <div class="glass card">
+          <ul class="clean">
+            <li>Peralatan panjat: harness, carabiner, webbing</li>
+            <li>Kunci pas, kunci ring, kunci inggris, tang (potong, buaya, jepit), obeng set</li>
+            <li>Tie rap, isolator gel (silicon), rubber 3M, senter</li>
+            <li>Software AP Manager, Orinoco Client, driver &amp; AP Utility Planet</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 15 Prosedur pointing -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Prosedur</span>
+        <h2>6 tahapan <span class="grad">pointing</span></h2>
+      </div>
+      <div class="grid g2 r" style="gap:14px">
+        <div class="glass card row" style="padding:18px 22px"><div class="num">1</div><p class="body">Tentukan koordinat kedudukan station dan jarak udara ke BTS dengan GPS &amp; kompas pada peta.</p></div>
+        <div class="glass card row" style="padding:18px 22px"><div class="num">2</div><p class="body">Perhatikan dan tandai titik potensial penghalang (obstacle) sepanjang path.</p></div>
+        <div class="glass card row" style="padding:18px 22px"><div class="num">3</div><p class="body">Hitung SOM, path &amp; accessories loss, EIRP, fresnel zone, dan ketinggian antena.</p></div>
+        <div class="glass card row" style="padding:18px 22px"><div class="num">4</div><p class="body">Perhatikan posisi terhadap station lain: hidden station, over shoot, noise, interferensi, multipath, cross section signal.</p></div>
+        <div class="glass card row" style="padding:18px 22px"><div class="num">5</div><p class="body">Tentukan posisi ideal tower, elevasi, panjang kabel, dan alternatif bila instalasi sulit.</p></div>
+        <div class="glass card row" style="padding:18px 22px"><div class="num">6</div><p class="body">Rencanakan sejumlah alternatif metode instalasi, pemindahan posisi, dan alat.</p></div>
+      </div>
+    </section>
+
+    <!-- 16 Rangkuman -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Rangkuman</span>
+        <h2>Site Survey <span class="grad">vs</span> Pointing</h2>
+      </div>
+      <div class="grid g2 r" style="align-items:start">
+        <div class="glass card" style="padding:30px">
+          <h3 style="margin-bottom:14px">Site Survey</h3>
+          <ul class="clean">
+            <li>Menganalisa &amp; mengambil data untuk instalasi</li>
+            <li>Fokus: fasilitas, spesifikasi jaringan, area &amp; tower, bisnis, bandwidth, dana, keamanan</li>
+            <li>Analisa kunci: Line of Sight &amp; Fresnel Zone</li>
+            <li>Output: kondisi sekitar, ketinggian &amp; jarak, jenis perangkat</li>
+          </ul>
+        </div>
+        <div class="glass card" style="padding:30px">
+          <h3 style="margin-bottom:14px">Pointing</h3>
+          <ul class="clean">
+            <li>Menentukan letak &amp; arah antena pemancar–penerima</li>
+            <li>Menghubungkan AP server dengan AP client</li>
+            <li>Perhitungan: elevasi, azimuth, fresnel zone, EIRP, loss</li>
+            <li>Output: posisi ideal tower, elevasi, panjang kabel</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 17 Pertanyaan + CTA -->
+    <section class="slide">
+      <div class="head r">
+        <span class="kicker"><span class="dot"></span>Latihan</span>
+        <h2>Pertanyaan <span class="grad">Materi</span></h2>
+      </div>
+      <div class="grid g2 r" style="gap:14px;margin-bottom:26px">
+        <div class="glass card row" style="padding:16px 20px"><div class="num">1</div><p class="body">Apa yang dimaksud dengan proses site survey?</p></div>
+        <div class="glass card row" style="padding:16px 20px"><div class="num">2</div><p class="body">Jelaskan Line of Sight dan Fresnel Zone!</p></div>
+        <div class="glass card row" style="padding:16px 20px"><div class="num">3</div><p class="body">Sebutkan efek propagasi sinyal saat membentur obstacle!</p></div>
+        <div class="glass card row" style="padding:16px 20px"><div class="num">4</div><p class="body">Jelaskan 3 data utama hasil site survey!</p></div>
+        <div class="glass card row" style="padding:16px 20px"><div class="num">5</div><p class="body">Apa yang dimaksud dengan proses pointing?</p></div>
+        <div class="glass card row" style="padding:16px 20px"><div class="num">6</div><p class="body">Sebutkan 10 peralatan pointing &amp; jelaskan tahapannya!</p></div>
+      </div>
+      <a class="cta r" href="tanya.html">
+        Buka Giliran Tanya
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </section>
+
+    <!-- 18 Tanya jawab -->
+    <section class="slide" style="align-items:center;text-align:center">
+      <span class="kicker r" style="align-self:center"><span class="dot"></span>Sesi Diskusi</span>
+      <h1 class="r" style="margin:22px 0 16px"><span class="grad">Tanya Jawab</span></h1>
+      <p class="lead r" style="text-align:center">Silakan ajukan pertanyaan seputar site survey dan pointing antena.</p>
+    </section>
+
+    <!-- 19 Penutup -->
+    <section class="slide" style="align-items:center;text-align:center">
+      <h1 class="r"><span class="grad">Terima Kasih</span></h1>
+      <p class="lead r" style="text-align:center;margin-top:16px">Kelompok 3 — Zanuar (8) · Royyan (17) · Raisya (27) · Salma (29) · Icha (4)</p>
+      <p class="small r" style="margin-top:10px">Sumber: Modul Jaringan Nirkabel, Kelompok Kompetensi F — LPPPTK KPTK</p>
+    </section>
+
+  </div>
+</div>
+
+<div id="prev" class="navbtn" title="Sebelumnya"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div id="next" class="navbtn" title="Selanjutnya"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+<div id="dots" class="chrome"></div>
+<div id="counter" class="chrome"></div>
+<div id="fs" class="chrome">⤢ Fullscreen</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var stage = document.getElementById('stage');
+  var dots = document.getElementById('dots');
+  var counter = document.getElementById('counter');
+  var bar = document.getElementById('bar');
+  var i = 0, W = 1280, H = 720;
+
+  slides.forEach(function(s, n){
+    var b = document.createElement('b');
+    b.addEventListener('click', function(){ go(n); });
+    dots.appendChild(b);
+  });
+  var dotEls = Array.prototype.slice.call(dots.children);
+
+  function render(){
+    slides.forEach(function(s, n){
+      s.classList.toggle('active', n === i);
+      s.classList.toggle('prev', n < i);
+    });
+    dotEls.forEach(function(d, n){ d.classList.toggle('on', n === i); });
+    counter.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+    if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
+    document.title = (i + 1) + '/' + slides.length + ' — Bab 3 Perancangan Jaringan Nirkabel | Kelompok 3';
+  }
+  function go(n){ i = Math.max(0, Math.min(slides.length - 1, n)); render(); }
+
+  function fit(){
+    var s = Math.min(window.innerWidth / W, window.innerHeight / H);
+    stage.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+
+  document.getElementById('prev').addEventListener('click', function(){ go(i - 1); });
+  document.getElementById('next').addEventListener('click', function(){ go(i + 1); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(i + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(i - 1); }
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(slides.length - 1);
+    if (e.key === 'f' || e.key === 'F') toggleFs();
+  });
+
+  var sx = null;
+  document.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if (sx === null) return;
+    var dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) > 55) go(i + (dx < 0 ? 1 : -1));
+    sx = null;
+  });
+
+  function toggleFs(){
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  }
+  document.getElementById('fs').addEventListener('click', toggleFs);
+
+  var start = parseInt((location.hash || '').replace('#',''), 10);
+  if (start >= 1 && start <= slides.length) i = start - 1;
+  fit(); render();
+})();
+</script>
+</body>
+</html>
+
